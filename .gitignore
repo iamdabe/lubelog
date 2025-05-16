@@ -14,3 +14,4 @@ Properties/launchSettings.json
 data/cartracker-log.db
 data/widgets.html
 /.vscode
+wwwroot/gallery/

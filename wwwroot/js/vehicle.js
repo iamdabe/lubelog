@@ -5,6 +5,7 @@ $(document).ready(function () {
     var vehicleId = GetVehicleId().vehicleId;
     //bind tabs
     $('button[data-bs-toggle="tab"]').on('show.bs.tab', function (e) {
+        console.log(e.target.id);
         switch (e.target.id) {
             case "servicerecord-tab":
                 getVehicleServiceRecords(vehicleId);
@@ -38,6 +39,9 @@ $(document).ready(function () {
                 break;
             case "odometer-tab":
                 getVehicleOdometerRecords(vehicleId);
+                break;
+            case "gallery-tab":
+                getVehicleGalleryRecords(vehicleId);
                 break;
         }
         switch (e.relatedTarget.id) { //clear out previous tabs with grids in them to help with performance
@@ -73,6 +77,9 @@ $(document).ready(function () {
                 break;
             case "odometer-tab":
                 $("#odometer-tab-pane").html("");
+                break;
+            case "gallery-tab":
+                $("#gallery-tab-pane").html("");
                 break;
         }
         $(`.lubelogger-tab #${e.target.id}`).addClass('active');
@@ -115,6 +122,9 @@ $(document).ready(function () {
         case "OdometerRecord":
             getVehicleOdometerRecords(vehicleId);
             break;
+        case "GalleryRecord":
+            getVehicleGalleryRecords(vehicleId);
+            break;
     }
 });
 
@@ -145,6 +155,7 @@ function getVehiclePlanRecords(vehicleId) {
     });
 }
 function getVehicleOdometerRecords(vehicleId) {
+    console.log(`/Vehicle/GetOdometerRecordsByVehicleId ? vehicleId = ${ vehicleId }`);
     $.get(`/Vehicle/GetOdometerRecordsByVehicleId?vehicleId=${vehicleId}`, function (data) {
         if (data) {
             $("#odometer-tab-pane").html(data);
@@ -222,6 +233,14 @@ function editVehicle(vehicleId) {
             initDatePicker($('#inputPurchaseDate'));
             initDatePicker($('#inputSoldDate'));
             $('#editVehicleModal').modal('show');
+        }
+    });
+}
+function getVehicleGalleryRecords(vehicleId) {
+    $.get(`/Vehicle/GetGalleryRecordsByVehicleId?vehicleId=${vehicleId}`, function (data) {
+        if (data) {
+            $("#gallery-tab-pane").html(data);
+            restoreScrollPosition();
         }
     });
 }

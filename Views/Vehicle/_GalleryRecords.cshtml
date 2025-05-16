@@ -1,0 +1,98 @@
+﻿@using CarCareTracker.Helper
+@inject IConfigHelper config
+@inject ITranslationHelper translator
+@model List<GalleryRecord>
+@{
+    var userConfig = config.GetUserConfig(User);
+    var userLanguage = userConfig.UserLanguage;
+    var enableCsvImports = userConfig.EnableCsvImports;
+}
+<div class="row">
+    <div class="d-flex justify-content-between">
+        <div class="d-flex align-items-center flex-wrap">
+            <span class="ms-2 badge bg-success" data-aggregate-type="count">@($"{translator.Translate(userLanguage, "# of Photos")}: {Model.Count()}")</span>
+        </div>
+        <div>
+            @if (enableCsvImports)
+            {
+                <div class="btn-group">
+                    <button onclick="showAddGalleryRecordModal()" class="btn btn-primary btn-md mt-1 mb-1"><i class="bi bi-pencil-square me-2"></i>@translator.Translate(userLanguage, "Add Photos")</button>
+                    <button type="button" class="btn btn-md btn-primary btn-md mt-1 mb-1 dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="visually-hidden">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <div class="list-group-item">
+                                <input class="btn-check" type="checkbox" id="chkSelectMode">
+                                <label class="dropdown-item" for="chkSelectMode">@translator.Translate(userLanguage, "Select Mode")</label>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            }
+            else
+            {
+                <button onclick="showAddGalleryRecordModal()" class="btn btn-primary btn-md mt-1 mb-1"><i class="bi bi-pencil-square me-2"></i>@translator.Translate(userLanguage, "Add Photos")</button>
+            }
+        </div>
+    </div>
+</div>
+<div class="row vehicleDetailTabContainer">
+    <div class="col-12">
+        <div class="row mt-2 showOnPrint">
+            <div class="d-flex">
+                <img src="@config.GetLogoUrl()" class="lubelogger-logo" />
+            </div>
+        </div>
+        <div class="d-flex">
+            <div class="row g-3">
+                @foreach (GalleryRecord galleryRecord in Model)
+                {
+
+
+                    @foreach (UploadedFiles filesUploaded in @galleryRecord.Files)
+                    {
+                        <div class="col-6 col-sm-4 col-md-3 user-select-none" style="cursor:pointer;" onmouseup="stopEvent()" ontouchstart="detectRowLongTouch(this)" ontouchend="detectRowTouchEndPremature(this)" data-rowId="@galleryRecord.Id" oncontextmenu="showTableContextMenu(this)" onmousemove="rangeMouseMove(this)">
+
+                            <a onclick="showViewGalleryRecordModal(@galleryRecord.Id)" class="d-block" href="@filesUploaded.Location" target="_blank"><img class="img-fluid rounded" src="@filesUploaded.Location" /></a>
+                        </div>
+
+                    }
+
+                }
+            </div>
+        </div>
+        <table class="table table-hover">
+            <tfoot>
+                <tr class="d-flex">
+                    <td class="col-12 showOnPrint lubelogger-report-banner">
+                        @StaticHelper.ReportNote
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+
+<div class="modal fade" data-bs-focus="false" id="galleryRecordModal" tabindex="-1" role="dialog" aria-hidden="true" onpaste="handleModalPaste(event, 'galleryRecordFiles')">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="galleryRecordModalContent">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" data-bs-focus="false" id="galleryRecordViewModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="galleryRecordViewModalContent">
+        </div>
+    </div>
+</div>
+
+<ul class="table-context-menu dropdown-menu" style="display:none;">
+    <li><a class="context-menu-multiple context-menu-select-all dropdown-item" href="#" onclick="selectAllRows()"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Select All")</span><i class="bi bi-check-square"></i></div></a></li>
+    <li><a class="context-menu-multiple context-menu-deselect-all dropdown-item" href="#" onclick="clearSelectedRows()"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Deselect All")</span><i class="bi bi-x-square"></i></div></a></li>
+    <li><hr class="context-menu-multiple dropdown-divider"></li>
+    <li><a class="dropdown-item " href="#" onclick="handleTableRowClick(this, showEditGalleryRecordModal,selectedRow)"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Edit")</span><i class="bi bi-edit"></i></div></a></li>
+    <li><a class="dropdown-item text-danger" href="#" onclick="deleteRecords(selectedRow, 'GalleryRecord')"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Delete")</span><i class="bi bi-trash"></i></div></a></li>
+</ul>

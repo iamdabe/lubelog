@@ -1,0 +1,91 @@
+﻿@using CarCareTracker.Helper
+@inject IConfigHelper config
+@inject ITranslationHelper translator
+@model GalleryRecordInput
+@{
+    var isNew = Model.Id == 0;
+    var userConfig = config.GetUserConfig(User);
+    var userLanguage = userConfig.UserLanguage;
+}
+<div class="modal-header">
+    <h5 class="modal-title">@(isNew ? translator.Translate(userLanguage, "Add Photo") : translator.Translate(userLanguage, "Edit Photo"))<small style="display:none; @(isNew ? "" : "cursor:pointer;")" class="cached-banner ms-2 text-warning" onclick='@(isNew ? "" : $"showEditGalleryRecordModal({Model.Id}, true)" )'>@translator.Translate(userLanguage, "Unsaved Changes")</small></h5>
+    <button type="button" class="btn-close" onclick="hideAddGalleryRecordModal()" aria-label="Close"></button>
+</div>
+<div class="modal-body" onkeydown="handleEnter(this)">
+    <form>
+        <div class="form-group">
+            <div class="row">
+                <div class="col-12">
+                    <input type="text" id="workAroundInput" style="height:0px; width:0px; display:none;">
+
+                    <label for="galleryRecordDate">@translator.Translate(userLanguage, "Date")</label>
+                    <div class="input-group">
+                        <input type="text" id="galleryRecordDate" class="form-control" placeholder="@translator.Translate(userLanguage,"Date of photo")" value="@Model.Date">
+                        <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="usePhotoDate">
+                        <label class="form-check-label" for="usePhotoDate">
+                            @translator.Translate(userLanguage, "Use EXIF date taken")
+                        </label>
+                    </div>
+
+                    <label for="galleryRecordName">@translator.Translate(userLanguage, "Name")</label>
+                    <input type="text" id="galleryRecordName" class="form-control" placeholder="@translator.Translate(userLanguage,"Name for the photo")" value="@(isNew ? "" : Model.Name)">
+                </div>
+                <div class="col-12">
+                    <label for="galleryRecordNotes">@translator.Translate(userLanguage, "Notes")<a class="link-underline link-underline-opacity-0" onclick="showLinks(this)"><i class="bi bi-markdown ms-2"></i></a></label>
+                    <textarea class="form-control" id="galleryRecordNotes">@Model.Notes</textarea>
+                </div>
+                <div class="col-12">
+                    @if (Model.Files.Any())
+                    {
+                        <div>
+                            @await Html.PartialAsync("_UploadedFiles", Model.Files)
+                            <label for="galleryRecordFiles">@translator.Translate(userLanguage, "Upload photo")</label>
+                            <input onChange="uploadVehicleFilesAsync(this)" type="file" multiple accept="@config.GetAllowedFileUploadExtensions()" class="form-control-file" id="galleryRecordFiles">
+                            <br /><small class="text-body-secondary">@translator.Translate(userLanguage, "Max File Size: 28.6MB")</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <label for="galleryRecordFiles">@translator.Translate(userLanguage, "Upload photo")</label>
+                        <input onChange="uploadVehicleFilesAsync(this)" type="file" multiple accept="@config.GetAllowedFileUploadExtensions()" class="form-control-file" id="galleryRecordFiles">
+                        <br />
+                        <small class="text-body-secondary">@translator.Translate(userLanguage, "Max File Size: 28.6MB")</small>
+                    }
+                    <div id="filesPendingUpload"></div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="modal-footer">
+    @if (!isNew)
+    {
+        <button type="button" class="btn btn-danger" onclick="deleteGalleryRecord(@Model.Id)" style="margin-right:auto;">@translator.Translate(userLanguage, "Delete")</button>
+    }
+    <button type="button" class="btn btn-secondary" onclick="hideAddGalleryRecordModal()">@translator.Translate(userLanguage, "Cancel")</button>
+    @if (isNew)
+    {
+        <button type="button" class="btn btn-primary" onclick="saveGalleryRecordToVehicle()">@translator.Translate(userLanguage, "Add Photo")</button>
+    }
+    else if (!isNew)
+    {
+        <button type="button" class="btn btn-primary" onclick="saveGalleryRecordToVehicle(true)">@translator.Translate(userLanguage, "Edit Photo")</button>
+    }
+</div>
+<script>
+    var uploadedFiles = [];
+    getUploadedFilesFromModel();
+    function getUploadedFilesFromModel() {
+    @foreach (UploadedFiles filesUploaded in Model.Files)
+    {
+        @:uploadedFiles.push({ name: "@filesUploaded.Name", location: "@filesUploaded.Location" });
+    }
+    }
+    function getGalleryRecordModelData(){
+        return { id: @Model.Id}
+    }
+</script>

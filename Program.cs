@@ -58,6 +58,7 @@ else
     builder.Services.AddSingleton<ITokenRecordDataAccess, TokenRecordDataAccess>();
     builder.Services.AddSingleton<IUserAccessDataAccess, UserAccessDataAccess>();
     builder.Services.AddSingleton<IExtraFieldDataAccess, ExtraFieldDataAccess>();
+    builder.Services.AddSingleton<IGalleryRecordDataAccess, GalleryRecordDataAccess>();
 }
 
 //configure helpers

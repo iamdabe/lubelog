@@ -37,7 +37,8 @@
             ImportMode.UpgradeRecord, 
             ImportMode.TaxRecord, 
             ImportMode.ReminderRecord, 
-            ImportMode.NoteRecord
+            ImportMode.NoteRecord,
+            ImportMode.GalleryRecord
         };
         public ImportMode DefaultTab { get; set; } = ImportMode.Dashboard;
         public List<ImportMode> TabOrder { get; set; } = new List<ImportMode>() {
@@ -51,7 +52,8 @@
             ImportMode.SupplyRecord,
             ImportMode.TaxRecord,
             ImportMode.NoteRecord,
-            ImportMode.ReminderRecord
+            ImportMode.ReminderRecord,
+            ImportMode.GalleryRecord
         };
     }
 }

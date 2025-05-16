@@ -482,3 +482,32 @@ html[data-bs-theme="light"] .api-method:hover {
     border-top: thin solid black;
     text-align: center;
 }
+
+
+.swal2-actions {
+    justify-content: flex-end;
+    display: flex;
+    width: 100%;
+    padding: calc(1rem - 0.5rem * .5);
+}
+
+.swal2-actions > * {
+    margin: calc(0.5rem * .5);
+}
+
+h2.swal2-title {
+    text-align: left;
+    font-size: 1.25rem;
+    padding: 1rem;
+}
+.swal2-popup {
+    color: inherit;
+    padding: 0;
+}
+html[data-bs-theme="dark"] .swal2-popup {
+    background: #212529;
+}
+.swal2-html-container {
+    font-size: 1em !important;
+}
+

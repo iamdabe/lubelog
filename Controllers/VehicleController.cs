@@ -37,6 +37,7 @@ namespace CarCareTracker.Controllers
         private readonly IOdometerLogic _odometerLogic;
         private readonly IVehicleLogic _vehicleLogic;
         private readonly IExtraFieldDataAccess _extraFieldDataAccess;
+        private readonly IGalleryRecordDataAccess _galleryRecordDataAccess;
 
         public VehicleController(ILogger<VehicleController> logger,
             IFileHelper fileHelper,
@@ -56,6 +57,7 @@ namespace CarCareTracker.Controllers
             IPlanRecordTemplateDataAccess planRecordTemplateDataAccess,
             IOdometerRecordDataAccess odometerRecordDataAccess,
             IExtraFieldDataAccess extraFieldDataAccess,
+            IGalleryRecordDataAccess galleryRecordDataAccess,
             IUserLogic userLogic,
             IOdometerLogic odometerLogic,
             IVehicleLogic vehicleLogic,
@@ -80,6 +82,7 @@ namespace CarCareTracker.Controllers
             _planRecordTemplateDataAccess = planRecordTemplateDataAccess;
             _odometerRecordDataAccess = odometerRecordDataAccess;
             _extraFieldDataAccess = extraFieldDataAccess;
+            _galleryRecordDataAccess = galleryRecordDataAccess;
             _userLogic = userLogic;
             _odometerLogic = odometerLogic;
             _vehicleLogic = vehicleLogic;
@@ -161,6 +164,7 @@ namespace CarCareTracker.Controllers
                 _supplyRecordDataAccess.DeleteAllSupplyRecordsByVehicleId(vehicleId) &&
                 _odometerRecordDataAccess.DeleteAllOdometerRecordsByVehicleId(vehicleId) &&
                 _userLogic.DeleteAllAccessToVehicle(vehicleId) &&
+                _galleryRecordDataAccess.DeleteAllGalleryRecordsByVehicleId(vehicleId) &&
                 _dataAccess.DeleteVehicle(vehicleId);
             if (result)
             {
@@ -199,7 +203,7 @@ namespace CarCareTracker.Controllers
                 return Json(OperationResponse.Failed());
             }
         }
-        
+
         #region "Shared Methods"
         [HttpPost]
         public IActionResult GetFilesPendingUpload(List<UploadedFiles> uploadedFiles)
@@ -426,6 +430,9 @@ namespace CarCareTracker.Controllers
                         break;
                     case ImportMode.ReminderRecord:
                         result = DeleteReminderRecordWithChecks(recordId);
+                        break;
+                    case ImportMode.GalleryRecord:
+                        result = DeleteGalleryRecordWithChecks(recordId);
                         break;
                 }
             }
