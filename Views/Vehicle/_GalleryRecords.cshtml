@@ -6,6 +6,8 @@
     var userConfig = config.GetUserConfig(User);
     var userLanguage = userConfig.UserLanguage;
     var enableCsvImports = userConfig.EnableCsvImports;
+    int Id = 0;
+
 }
 <div class="row">
     <div class="d-flex justify-content-between">
@@ -23,8 +25,15 @@
                     <ul class="dropdown-menu">
                         <li>
                             <div class="list-group-item">
-                                <input class="btn-check" type="checkbox" id="chkSelectMode">
+                                <input class="btn-check" type="checkbox" id="chkSelectMode" onchange="changeGalleryMode('select', this.checked)">
                                 <label class="dropdown-item" for="chkSelectMode">@translator.Translate(userLanguage, "Select Mode")</label>
+                            </div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <div class="list-group-item">
+                                <input class="btn-check" type="checkbox" id="chkReorderMode" onchange="changeGalleryMode('reorder', this.checked)">
+                                <label class="dropdown-item" for="chkReorderMode">@translator.Translate(userLanguage, "Reorder Mode")</label>
                             </div>
                         </li>
                     </ul>
@@ -37,7 +46,7 @@
         </div>
     </div>
 </div>
-<div class="row vehicleDetailTabContainer">
+<div class="row ">
     <div class="col-12">
         <div class="row mt-2 showOnPrint">
             <div class="d-flex">
@@ -45,20 +54,17 @@
             </div>
         </div>
         <div class="d-flex">
-            <div class="row g-3">
+
+            <div class="gallery-grid mt-3">
                 @foreach (GalleryRecord galleryRecord in Model)
                 {
-
-
                     @foreach (UploadedFiles filesUploaded in @galleryRecord.Files)
                     {
-                        <div class="col-6 col-sm-4 col-md-3 user-select-none" style="cursor:pointer;" onmouseup="stopEvent()" ontouchstart="detectRowLongTouch(this)" ontouchend="detectRowTouchEndPremature(this)" data-rowId="@galleryRecord.Id" oncontextmenu="showTableContextMenu(this)" onmousemove="rangeMouseMove(this)">
-
-                            <a onclick="showViewGalleryRecordModal(@galleryRecord.Id)" class="d-block" href="@filesUploaded.Location" target="_blank"><img class="img-fluid rounded" src="@filesUploaded.Location" /></a>
+                        <div draggable="true" class="gallery-item ratio-4x3" onclick="handleTableRowClick(this, showViewGalleryRecordModal, @Id); return false;" onmouseup="stopEvent()" ontouchstart="detectRowLongTouch(this)" ontouchend="detectRowTouchEndPremature(this)" data-rowId="@galleryRecord.Id" oncontextmenu="showTableContextMenu(this)" onmousemove="">
+                            <a class="d-block" href="@filesUploaded.Location" data-image="@filesUploaded.Location"><img class="img-fluid rounded object-fit-cover" src="@filesUploaded.Location" /></a>
                         </div>
-
+                        Id++;
                     }
-
                 }
             </div>
         </div>
@@ -83,16 +89,132 @@
 </div>
 
 <div class="modal fade" data-bs-focus="false" id="galleryRecordViewModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content" id="galleryRecordViewModalContent">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-black">
+            <div class="modal-body d-flex justify-content-center align-items-center position-relative p-0">
+                <img id="modalImage" src="" class="img-fluid w-100 h-100 object-fit-contain" style="max-height: 95vh;" />
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-2" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                <button onclick="prevImage();" class="carousel-control-prev" type="button" data-bs-target="#carouselExample" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+
+                <button onclick="nextImage();" class="carousel-control-next" type="button" data-bs-target="#carouselExample" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+
+            </div>
         </div>
     </div>
 </div>
+
 
 <ul class="table-context-menu dropdown-menu" style="display:none;">
     <li><a class="context-menu-multiple context-menu-select-all dropdown-item" href="#" onclick="selectAllRows()"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Select All")</span><i class="bi bi-check-square"></i></div></a></li>
     <li><a class="context-menu-multiple context-menu-deselect-all dropdown-item" href="#" onclick="clearSelectedRows()"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Deselect All")</span><i class="bi bi-x-square"></i></div></a></li>
     <li><hr class="context-menu-multiple dropdown-divider"></li>
-    <li><a class="dropdown-item " href="#" onclick="handleTableRowClick(this, showEditGalleryRecordModal,selectedRow)"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Edit")</span><i class="bi bi-edit"></i></div></a></li>
+    <li><a class="context-menu-active-single dropdown-item" href="#" onclick="showEditGalleryRecordModal(selectedRow);"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Edit")</span><i class="bi bi-pencil"></i></div></a></li>
+    <li><a class="dropdown-item" href="#" onclick="addTags(selectedRow, 'GalleryRecord')"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Add/Edit Tags")</span><i class="bi bi-tags"></i></div></a></li>
     <li><a class="dropdown-item text-danger" href="#" onclick="deleteRecords(selectedRow, 'GalleryRecord')"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Delete")</span><i class="bi bi-trash"></i></div></a></li>
 </ul>
+
+<script>
+    let galleryLength = 0;
+    let currentIndex = 0;
+
+    function showImage(index) {
+        const imageUrl = $('.gallery-item a').eq(index).attr('data-image');
+        $('#modalImage').attr('src', imageUrl);
+        $('#galleryRecordViewModal').modal('show');
+    }
+    function nextImage() {
+        currentIndex = (currentIndex + 1) % galleryLength;
+        showImage(currentIndex);
+    }
+
+    function prevImage() {
+        currentIndex = (currentIndex - 1 + galleryLength) % galleryLength;
+        showImage(currentIndex);
+    }
+
+    function showViewGalleryRecordModal(index) {
+        galleryLength = $('.gallery-item a').length;
+        currentIndex = index;
+        showImage(currentIndex);
+    }
+
+     function changeGalleryMode(mode, enable) {
+         console.log(mode + ' ' + enable);
+        if (enable) {
+            switch (mode) {
+                case 'reorder':
+                    $("#chkSelectMode").prop("checked", false);
+                    clearSelectedRows();
+                    toggleGalleryReorder(true);
+                    break;
+
+                case 'select':
+                    $("#chkReorderMode").prop("checked", false);
+                    toggleGalleryReorder(false);
+                    break;
+
+                default:
+                    clearSelectedRows();
+                    toggleGalleryReorder(false);
+                    $("#chkReorderMode").prop("checked", false);
+                    $("#chkSelectMode").prop("checked", false);
+                    break;
+            }
+        } else {
+            switch (mode) {
+                case 'reorder':
+                    toggleGalleryReorder(false);
+                    break;
+
+                case 'select':
+                    clearSelectedRows();
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+
+
+    function toggleGalleryReorder(enable = true) {
+        const $items = $(".gallery-item");
+
+        if (enable) {
+            $items.attr("draggable", true);
+
+            $items.on("dragstart.gallery", function () {
+                draggedItem = $(this);
+            });
+
+            $items.on("dragover.gallery", function (e) {
+                e.preventDefault();
+                const $target = $(this);
+                if (draggedItem && !draggedItem.is($target)) {
+                    draggedItem.index() < $target.index()
+                        ? draggedItem.insertAfter($target)
+                        : draggedItem.insertBefore($target);
+                }
+            });
+
+            $items.on("dragend.gallery", function () {
+                draggedItem = null;
+            });
+        } else {
+            $items.removeAttr("draggable");
+            $items.off(".gallery"); // Remove all `.gallery` namespaced events
+        }
+    }
+
+    let draggedItem = null;
+
+
+</script>

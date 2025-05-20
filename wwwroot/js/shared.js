@@ -375,11 +375,11 @@ function decodeHTMLEntities(text) {
         .text();
 }
 var debounce = null;
-function setDebounce(callBack) {
+function setDebounce(callBack, timeout = 1000) {
     clearTimeout(debounce);
     debounce = setTimeout(function () {
         callBack();
-    }, 1000);
+    }, timeout);
 }
 var storedTableRowState = null;
 function toggleSort(tabName, sender) {
@@ -976,8 +976,8 @@ function getCurrentTab() {
 }
 function selectAllRows() {
     clearSelectedRows();
-    $('.vehicleDetailTabContainer .table tbody tr:visible').addClass('table-active');
-    $('.vehicleDetailTabContainer .table tbody tr:visible').map((index, elem) => {
+    $('.vehicleDetailTabContainer .table tbody tr:visible, .gallery-item').addClass('table-active');
+    $('.vehicleDetailTabContainer .table tbody tr:visible, .gallery-item').map((index, elem) => {
         addToSelectedRows($(elem).attr('data-rowId'));
     });
 }
@@ -1039,7 +1039,7 @@ function removeFromSelectedRows(id) {
 }
 function clearSelectedRows() {
     selectedRow = [];
-    $('.table tr').removeClass('table-active');
+    $('.table tr, .gallery-item').removeClass('table-active');
 }
 function getDeviceIsTouchOnly() {
     if (navigator.maxTouchPoints > 0 && matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches) {
@@ -1056,7 +1056,6 @@ function showTableContextMenu(e) {
         return;
     }
     $(".table-context-menu").fadeIn("fast");
-    determineContextMenuItems();
     $(".table-context-menu").css({
         left: getMenuPosition(event.clientX, 'width', 'scrollLeft'),
         top: getMenuPosition(event.clientY, 'height', 'scrollTop')
@@ -1066,10 +1065,12 @@ function showTableContextMenu(e) {
         addToSelectedRows($(e).attr('data-rowId'));
         $(e).addClass('table-active');
     }
+    determineContextMenuItems();
 }
 function determineContextMenuItems() {
-    var tableRows = $('.table tbody tr:visible');
-    var tableRowsActive = $('.table tr.table-active');
+    var tableRows = $('.table tbody tr:visible, .gallery-item');
+    var tableRowsActive = $('.table tr.table-active, .gallery-item.table-active');
+    
     if (tableRowsActive.length == 1) {
         //only one row selected
         $(".context-menu-active-single").show();

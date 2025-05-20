@@ -30,7 +30,27 @@ namespace CarCareTracker.Controllers
         {
             //move files from temp.
             galleryRecord.Files = galleryRecord.Files.Select(x => { return new UploadedFiles { Name = x.Name, Location = _fileHelper.MoveFileFromTemp(x.Location, "gallery/") }; }).ToList();
-            var result = _galleryRecordDataAccess.SaveGalleryRecordToVehicle(galleryRecord.ToGalleryRecord());
+            //var result = _galleryRecordDataAccess.SaveGalleryRecordToVehicle(galleryRecord.ToGalleryRecord());
+
+            // Iterate over files and save a gallery record for each
+            var result = false;
+            for (int i = 0; i < galleryRecord.Files.Count; i++)
+            {
+                var file = galleryRecord.Files[i];
+
+                var record = new GalleryRecordInput
+                {
+                    Id = i == 0 ? galleryRecord.Id : 0, // Use existing ID for the first, unset for the rest
+                    VehicleId = galleryRecord.VehicleId,
+                    Name = galleryRecord.Name,
+                    Date = galleryRecord.Date,
+                    Notes = galleryRecord.Notes,
+                    Files = new List<UploadedFiles> { file }
+                };
+
+                result = _galleryRecordDataAccess.SaveGalleryRecordToVehicle(record.ToGalleryRecord());
+            }
+
             if (result)
             {
                 StaticHelper.NotifyAsync(_config.GetWebHookUrl(), galleryRecord.VehicleId, User.Identity.Name, $"{(galleryRecord.Id == default ? "Created" : "Edited")} Gallery Record");
