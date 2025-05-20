@@ -1,4 +1,5 @@
-﻿using CarCareTracker.External.Interfaces;
+﻿using CarCareTracker.Controllers;
+using CarCareTracker.External.Interfaces;
 using CarCareTracker.Helper;
 using CarCareTracker.Models;
 
@@ -12,11 +13,13 @@ namespace CarCareTracker.Logic
         int GetMaxMileage(VehicleRecords vehicleRecords);
         int GetMinMileage(int vehicleId);
         int GetMinMileage(VehicleRecords vehicleRecords);
-        int GetOwnershipDays(string purchaseDate, string soldDate, List<ServiceRecord> serviceRecords, List<CollisionRecord> repairRecords, List<GasRecord> gasRecords, List<UpgradeRecord> upgradeRecords, List<OdometerRecord> odometerRecords, List<TaxRecord> taxRecords);
+        int GetOwnershipDays(string purchaseDate, string soldDate, int year, List<ServiceRecord> serviceRecords, List<CollisionRecord> repairRecords, List<GasRecord> gasRecords, List<UpgradeRecord> upgradeRecords, List<OdometerRecord> odometerRecords, List<TaxRecord> taxRecords);
         bool GetVehicleHasUrgentOrPastDueReminders(int vehicleId, int currentMileage);
         List<VehicleInfo> GetVehicleInfo(List<Vehicle> vehicles);
         List<ReminderRecordViewModel> GetReminders(List<Vehicle> vehicles, bool isCalendar);
         List<PlanRecord> GetPlans(List<Vehicle> vehicles, bool excludeDone);
+        bool UpdateRecurringTaxes(int vehicleId);
+        void RestoreSupplyRecordsByUsage(List<SupplyUsageHistory> supplyUsage, string usageDescription);
     }
     public class VehicleLogic: IVehicleLogic
     {
@@ -29,6 +32,10 @@ namespace CarCareTracker.Logic
         private readonly IReminderRecordDataAccess _reminderRecordDataAccess;
         private readonly IPlanRecordDataAccess _planRecordDataAccess;
         private readonly IReminderHelper _reminderHelper;
+        private readonly IVehicleDataAccess _dataAccess;
+        private readonly ISupplyRecordDataAccess _supplyRecordDataAccess;
+        private readonly ILogger<VehicleLogic> _logger;
+
         public VehicleLogic(
             IServiceRecordDataAccess serviceRecordDataAccess,
             IGasRecordDataAccess gasRecordDataAccess,
@@ -38,7 +45,10 @@ namespace CarCareTracker.Logic
             IOdometerRecordDataAccess odometerRecordDataAccess,
             IReminderRecordDataAccess reminderRecordDataAccess,
             IPlanRecordDataAccess planRecordDataAccess,
-            IReminderHelper reminderHelper
+            IReminderHelper reminderHelper,
+            IVehicleDataAccess dataAccess,
+            ISupplyRecordDataAccess supplyRecordDataAccess,
+            ILogger<VehicleLogic> logger
             ) {
             _serviceRecordDataAccess = serviceRecordDataAccess;
             _gasRecordDataAccess = gasRecordDataAccess;
@@ -49,6 +59,9 @@ namespace CarCareTracker.Logic
             _planRecordDataAccess = planRecordDataAccess;
             _reminderRecordDataAccess = reminderRecordDataAccess;
             _reminderHelper = reminderHelper;
+            _dataAccess = dataAccess;
+            _supplyRecordDataAccess = supplyRecordDataAccess;
+            _logger = logger;
         }
         public VehicleRecords GetVehicleRecords(int vehicleId)
         {
@@ -186,22 +199,44 @@ namespace CarCareTracker.Logic
             }
             return numbersArray.Any() ? numbersArray.Min() : 0;
         }
-        public int GetOwnershipDays(string purchaseDate, string soldDate, List<ServiceRecord> serviceRecords, List<CollisionRecord> repairRecords, List<GasRecord> gasRecords, List<UpgradeRecord> upgradeRecords, List<OdometerRecord> odometerRecords, List<TaxRecord> taxRecords)
+        public int GetOwnershipDays(string purchaseDate, string soldDate, int year, List<ServiceRecord> serviceRecords, List<CollisionRecord> repairRecords, List<GasRecord> gasRecords, List<UpgradeRecord> upgradeRecords, List<OdometerRecord> odometerRecords, List<TaxRecord> taxRecords)
         {
             var startDate = DateTime.Now;
             var endDate = DateTime.Now;
-            if (!string.IsNullOrWhiteSpace(soldDate))
+            bool usePurchaseDate = false;
+            bool useSoldDate = false;
+            if (!string.IsNullOrWhiteSpace(soldDate) && DateTime.TryParse(soldDate, out DateTime vehicleSoldDate))
             {
-                endDate = DateTime.Parse(soldDate);
+                if (year == default || year >= vehicleSoldDate.Year) //All Time is selected or the selected year is greater or equal to the year the vehicle is sold
+                {
+                    endDate = vehicleSoldDate; //cap end date to vehicle sold date.
+                    useSoldDate = true;
+                }
             }
-            if (!string.IsNullOrWhiteSpace(purchaseDate))
+            if (!string.IsNullOrWhiteSpace(purchaseDate) && DateTime.TryParse(purchaseDate, out DateTime vehiclePurchaseDate))
             {
-                //if purchase date is provided, then we just have to subtract the begin date to end date and return number of months
-                startDate = DateTime.Parse(purchaseDate);
+                if (year == default || year <= vehiclePurchaseDate.Year) //All Time is selected or the selected year is less or equal to the year the vehicle is purchased
+                {
+                    startDate = vehiclePurchaseDate; //cap start date to vehicle purchase date
+                    usePurchaseDate = true;
+                }
+            }
+            if (year != default)
+            {
+                var calendarYearStart = new DateTime(year, 1, 1);
+                var calendarYearEnd = new DateTime(year + 1, 1, 1);
+                if (!useSoldDate)
+                {
+                    endDate = endDate > calendarYearEnd ? calendarYearEnd : endDate;
+                }
+                if (!usePurchaseDate)
+                {
+                    startDate = startDate > calendarYearStart ? calendarYearStart : startDate;
+                }
                 var timeElapsed = (int)Math.Floor((endDate - startDate).TotalDays);
                 return timeElapsed;
             }
-            var dateArray = new List<DateTime>();
+            var dateArray = new List<DateTime>() { startDate };
             dateArray.AddRange(serviceRecords.Select(x => x.Date));
             dateArray.AddRange(repairRecords.Select(x => x.Date));
             dateArray.AddRange(gasRecords.Select(x => x.Date));
@@ -268,11 +303,11 @@ namespace CarCareTracker.Logic
                 //set next reminder
                 if (results.Any(x => (x.Metric == ReminderMetric.Date || x.Metric == ReminderMetric.Both) && x.Date >= DateTime.Now.Date))
                 {
-                    resultToAdd.NextReminder = results.Where(x => x.Date >= DateTime.Now.Date).OrderBy(x => x.Date).Select(x => new ReminderExportModel { Description = x.Description, Urgency = x.Urgency.ToString(), Metric = x.Metric.ToString(), Notes = x.Notes, DueDate = x.Date.ToShortDateString(), DueOdometer = x.Mileage.ToString() }).First();
+                    resultToAdd.NextReminder = results.Where(x => x.Date >= DateTime.Now.Date).OrderBy(x => x.Date).Select(x => new ReminderExportModel { Id = x.Id.ToString(), Description = x.Description, Urgency = x.Urgency.ToString(), Metric = x.Metric.ToString(), Notes = x.Notes, DueDate = x.Date.ToShortDateString(), DueOdometer = x.Mileage.ToString(), Tags = string.Join(' ', x.Tags) }).First();
                 }
                 else if (results.Any(x => (x.Metric == ReminderMetric.Odometer || x.Metric == ReminderMetric.Both) && x.Mileage >= currentMileage))
                 {
-                    resultToAdd.NextReminder = results.Where(x => x.Mileage >= currentMileage).OrderBy(x => x.Mileage).Select(x => new ReminderExportModel { Description = x.Description, Urgency = x.Urgency.ToString(), Metric = x.Metric.ToString(), Notes = x.Notes, DueDate = x.Date.ToShortDateString(), DueOdometer = x.Mileage.ToString() }).First();
+                    resultToAdd.NextReminder = results.Where(x => x.Mileage >= currentMileage).OrderBy(x => x.Mileage).Select(x => new ReminderExportModel { Id = x.Id.ToString(), Description = x.Description, Urgency = x.Urgency.ToString(), Metric = x.Metric.ToString(), Notes = x.Notes, DueDate = x.Date.ToShortDateString(), DueOdometer = x.Mileage.ToString(), Tags = string.Join(' ', x.Tags) }).First();
                 }
                 apiResult.Add(resultToAdd);
             }
@@ -316,6 +351,99 @@ namespace CarCareTracker.Logic
                 }
             }
             return plans.OrderBy(x => x.Priority).ThenBy(x=>x.Progress).ToList();
+        }
+        public bool UpdateRecurringTaxes(int vehicleId)
+        {
+            var vehicleData = _dataAccess.GetVehicleById(vehicleId);
+            if (!string.IsNullOrWhiteSpace(vehicleData.SoldDate))
+            {
+                return false;
+            }
+            bool RecurringTaxIsOutdated(TaxRecord taxRecord)
+            {
+                var monthInterval = taxRecord.RecurringInterval != ReminderMonthInterval.Other ? (int)taxRecord.RecurringInterval : taxRecord.CustomMonthInterval;
+                bool addDays = taxRecord.RecurringInterval == ReminderMonthInterval.Other && taxRecord.CustomMonthIntervalUnit == ReminderIntervalUnit.Days;
+                return addDays ? DateTime.Now > taxRecord.Date.AddDays(monthInterval) : DateTime.Now > taxRecord.Date.AddMonths(monthInterval);
+            }
+            var result = _taxRecordDataAccess.GetTaxRecordsByVehicleId(vehicleId);
+            var outdatedRecurringFees = result.Where(x => x.IsRecurring && RecurringTaxIsOutdated(x));
+            if (outdatedRecurringFees.Any())
+            {
+                var success = false;
+                foreach (TaxRecord recurringFee in outdatedRecurringFees)
+                {
+                    var monthInterval = recurringFee.RecurringInterval != ReminderMonthInterval.Other ? (int)recurringFee.RecurringInterval : recurringFee.CustomMonthInterval;
+                    bool isOutdated = true;
+                    bool addDays = recurringFee.RecurringInterval == ReminderMonthInterval.Other && recurringFee.CustomMonthIntervalUnit == ReminderIntervalUnit.Days;
+                    //update the original outdated tax record
+                    recurringFee.IsRecurring = false;
+                    _taxRecordDataAccess.SaveTaxRecordToVehicle(recurringFee);
+                    //month multiplier for severely outdated monthly tax records.
+                    int monthMultiplier = 1;
+                    var originalDate = recurringFee.Date;
+                    while (isOutdated)
+                    {
+                        try
+                        {
+                            var nextDate = addDays ? originalDate.AddDays(monthInterval * monthMultiplier) : originalDate.AddMonths(monthInterval * monthMultiplier);
+                            monthMultiplier++;
+                            var nextnextDate = addDays ? originalDate.AddDays(monthInterval * monthMultiplier) : originalDate.AddMonths(monthInterval * monthMultiplier);
+                            recurringFee.Date = nextDate;
+                            recurringFee.Id = default; //new record
+                            recurringFee.IsRecurring = DateTime.Now <= nextnextDate;
+                            _taxRecordDataAccess.SaveTaxRecordToVehicle(recurringFee);
+                            isOutdated = !recurringFee.IsRecurring;
+                            success = true;
+                        }
+                        catch (Exception)
+                        {
+                            isOutdated = false; //break out of loop if something broke.
+                            success = false;
+                        }
+                    }
+                }
+                return success;
+            }
+            return false; //no outdated recurring tax records.
+        }
+        public void RestoreSupplyRecordsByUsage(List<SupplyUsageHistory> supplyUsage, string usageDescription)
+        {
+            foreach (SupplyUsageHistory supply in supplyUsage)
+            {
+                try
+                {
+                    if (supply.Id == default)
+                    {
+                        continue; //no id, skip current supply.
+                    }
+                    var result = _supplyRecordDataAccess.GetSupplyRecordById(supply.Id);
+                    if (result != null && result.Id != default)
+                    {
+                        //supply exists, re-add the quantity and cost
+                        result.Quantity += supply.Quantity;
+                        result.Cost += supply.Cost;
+                        var requisitionRecord = new SupplyUsageHistory
+                        {
+                            Id = supply.Id,
+                            Date = DateTime.Now.Date,
+                            Description = $"Restored from {usageDescription}",
+                            Quantity = supply.Quantity,
+                            Cost = supply.Cost
+                        };
+                        result.RequisitionHistory.Add(requisitionRecord);
+                        //save
+                        _supplyRecordDataAccess.SaveSupplyRecordToVehicle(result);
+                    }
+                    else
+                    {
+                        _logger.LogError($"Unable to find supply with id {supply.Id}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error restoring supply with id {supply.Id} : {ex.Message}");
+                }
+            }
         }
     }
 }

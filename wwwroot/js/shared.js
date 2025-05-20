@@ -1,4 +1,7 @@
-﻿function successToast(message) {
+﻿function returnToGarage() {
+    window.location.href = '/Home';
+}
+function successToast(message) {
     Swal.fire({
         toast: true,
         position: "top-end",
@@ -22,6 +25,21 @@ function errorToast(message) {
         title: message,
         timerProgressBar: true,
         icon: "error",
+        didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
+        }
+    })
+}
+function infoToast(message) {
+    Swal.fire({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 3000,
+        title: message,
+        timerProgressBar: true,
+        icon: "info",
         didOpen: (toast) => {
             toast.onmouseenter = Swal.stopTimer;
             toast.onmouseleave = Swal.resumeTimer;
@@ -321,6 +339,16 @@ function isValidMoney(input) {
     const usRegex = /^\$?(?=\(.*\)|[^()]*$)\(?\d{1,3}((,\d{3}){0,8}|(\d{3}){0,8})(\.\d{1,3}?)?\)?$/;
     return (euRegex.test(input) || usRegex.test(input));
 }
+function initExtraFieldDatePicker(fieldName) {
+    let inputField = $(`#${fieldName}`);
+    if (inputField.length > 0) {
+        inputField.datepicker({
+            format: getShortDatePattern().pattern,
+            autoclose: true,
+            weekStart: getGlobalConfig().firstDayOfWeek
+        });
+    }
+}
 function initDatePicker(input, futureOnly) {
     if (futureOnly) {
         input.datepicker({
@@ -347,7 +375,23 @@ function initTagSelector(input, noDataList) {
         input.tagsinput();
     }
 }
-
+function getAndValidateSelectedVehicle() {
+    var selectedVehiclesArray = [];
+    $("#vehicleSelector :checked").map(function () {
+        selectedVehiclesArray.push(this.value);
+    });
+    if (selectedVehiclesArray.length == 0) {
+        return {
+            hasError: true,
+            ids: []
+        }
+    } else {
+        return {
+            hasError: false,
+            ids: selectedVehiclesArray
+        }
+    }
+}
 function showMobileNav() {
     $(".lubelogger-mobile-nav").addClass("lubelogger-mobile-nav-show");
 }
@@ -381,7 +425,6 @@ function setDebounce(callBack, timeout = 1000) {
         callBack();
     }, timeout);
 }
-var storedTableRowState = null;
 function toggleSort(tabName, sender) {
     var sortColumn = sender.textContent;
     var sortAscIcon = '<i class="bi bi-sort-numeric-down ms-2"></i>';
@@ -397,14 +440,13 @@ function toggleSort(tabName, sender) {
         //restore table
         sender.removeClass('sort-desc');
         sender.html(`${sortColumn}`);
-        $(`#${tabName} table tbody`).html(storedTableRowState);
-        filterTable(tabName, $(".tagfilter.bg-primary").get(0), true);
+        resetSortTable(tabName);
     } else {
         //first time sorting.
         //check if table was sorted before by a different column(only relevant to fuel tab)
-        if (storedTableRowState != null && ($(".sort-asc").length > 0 || $(".sort-desc").length > 0)) {
+        if ($("[default-sort]").length > 0 && ($(".sort-asc").length > 0 || $(".sort-desc").length > 0)) {
             //restore table state.
-            $(`#${tabName} table tbody`).html(storedTableRowState);
+            resetSortTable(tabName);
             //reset other sorted columns
             if ($(".sort-asc").length > 0) {
                 $(".sort-asc").html($(".sort-asc").html().replace(sortAscIcon, ""));
@@ -417,8 +459,12 @@ function toggleSort(tabName, sender) {
         }
         sender.addClass('sort-asc');
         sender.html(`${sortColumn}${sortAscIcon}`);
-        storedTableRowState = null;
-        storedTableRowState = $(`#${tabName} table tbody`).html();
+        //append sortRowId to the table rows if nothing has been appended yet.
+        if ($("[default-sort]").length == 0) {
+            $(`#${tabName} table tbody tr`).map((index, elem) => {
+                $(elem).attr("default-sort", index);
+            });
+        }
         sortTable(tabName, sortColumn, false);
     }
 }
@@ -438,9 +484,17 @@ function sortTable(tabName, columnName, desc) {
         }
     });
     $(`#${tabName} table tbody`).html(sortedRow);
-    filterTable(tabName, $(".tagfilter.bg-primary").get(0), true);
 }
-function filterTable(tabName, sender, isSort) {
+function resetSortTable(tabName) {
+    var rowData = $(`#${tabName} table tbody tr`);
+    var sortedRow = rowData.toArray().sort((a, b) => {
+        var currentVal = $(a).attr('default-sort');
+        var nextVal = $(b).attr('default-sort');
+        return currentVal - nextVal;
+    });
+    $(`#${tabName} table tbody`).html(sortedRow);
+}
+function filterTable(tabName, sender) {
     var rowData = $(`#${tabName} table tbody tr`);
     if (sender == undefined) {
         rowData.removeClass('override-hide');
@@ -449,16 +503,10 @@ function filterTable(tabName, sender, isSort) {
     var tagName = sender.textContent;
     //check for other applied filters
     if ($(sender).hasClass("bg-primary")) {
-        if (!isSort) {
-            rowData.removeClass('override-hide');
-            $(sender).removeClass('bg-primary');
-            $(sender).addClass('bg-secondary');
-            updateAggregateLabels();
-        } else {
-            rowData.addClass('override-hide');
-            $(`[data-tags~='${tagName}']`).removeClass('override-hide');
-            updateAggregateLabels();
-        }
+        rowData.removeClass('override-hide');
+        $(sender).removeClass('bg-primary');
+        $(sender).addClass('bg-secondary');
+        updateAggregateLabels();
     } else {
         //hide table rows.
         rowData.addClass('override-hide');
@@ -606,6 +654,16 @@ function toggleMarkDownOverlay(textAreaName) {
         textArea.parent().children(`label[for=${textAreaName}]`).append(overlayDiv);
     }
 }
+function setMarkDownStickerNotes() {
+    var stickerContainers = $(".stickerNote");
+    if (stickerContainers.length > 0) {
+        stickerContainers.map((index, elem) => {
+            let originalStickerNote = $(elem).html().trim();
+            let markDownStickerNote = markdown(originalStickerNote);
+            $(elem).html(markDownStickerNote);
+        });
+    }
+}
 function showLinks(e) {
     var textAreaName = $(e.parentElement).attr("for");
     toggleMarkDownOverlay(textAreaName);
@@ -614,6 +672,33 @@ function printTab() {
     setTimeout(function () {
         window.print();
     }, 500);
+}
+function printContainer(htmlData) {
+    $(".vehicleDetailTabContainer").addClass("hideOnPrint");
+    $(".stickerPrintContainer").addClass("showOnPrint");
+    $(".stickerPrintContainer").removeClass("hideOnPrint");
+    $(".stickerPrintContainer").html(htmlData);
+    setTimeout(function () {
+        window.print();
+        setTimeout(function () {
+            $(".stickerPrintContainer").removeClass("showOnPrint");
+            $(".stickerPrintContainer").addClass("hideOnPrint");
+            $(".vehicleDetailTabContainer").removeClass("hideOnPrint");
+            $(".stickerPrintContainer").html("");
+        }, 1000);
+    }, 500);
+}
+function printTabStickers(ids, source) {
+    var vehicleId = GetVehicleId().vehicleId;
+    $.post('/Vehicle/PrintRecordStickers', {
+        vehicleId: vehicleId,
+        recordIds: ids,
+        importMode: source
+    }, function (data) {
+        if (data) {
+            printContainer(data);
+        }
+    })
 }
 function exportVehicleData(mode) {
     var vehicleId = GetVehicleId().vehicleId;
@@ -643,7 +728,7 @@ function getAndValidateExtraFields() {
     var extraFieldsVisible = $(".modal.fade.show").find(".extra-field");
     extraFieldsVisible.map((index, elem) => {
         var extraFieldName = $(elem).children("label").text();
-        var extraFieldInput = $(elem).children("input");
+        var extraFieldInput = $(elem).find("input");
         var extraFieldValue = extraFieldInput.val();
         var extraFieldIsRequired = extraFieldInput.hasClass('extra-field-required');
         if (extraFieldIsRequired && extraFieldValue.trim() == '') {
@@ -953,6 +1038,55 @@ function duplicateRecordsToOtherVehicles(ids, source) {
         }
     })
 }
+function insertOdometer(ids, source) {
+    if (ids.length == 0) {
+        return;
+    }
+    $("#workAroundInput").show();
+    var friendlySource = "";
+    var refreshDataCallBack;
+    var recordVerbiage = ids.length > 1 ? `these ${ids.length} records` : "this record";
+    switch (source) {
+        case "ServiceRecord":
+            friendlySource = "Service Records";
+            refreshDataCallBack = getVehicleServiceRecords;
+            break;
+        case "RepairRecord":
+            friendlySource = "Repairs";
+            refreshDataCallBack = getVehicleCollisionRecords;
+            break;
+        case "UpgradeRecord":
+            friendlySource = "Upgrades";
+            refreshDataCallBack = getVehicleUpgradeRecords;
+            break;
+        case "GasRecord":
+            friendlySource = "Fuel Records";
+            refreshDataCallBack = getVehicleGasRecords;
+            break;
+    }
+
+    Swal.fire({
+        title: "Create Odometer Records?",
+        text: `Create Odometer Records based on ${recordVerbiage}?`,
+        showCancelButton: true,
+        confirmButtonText: "Create",
+        confirmButtonColor: "#dc3545"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.post('/Vehicle/BulkCreateOdometerRecords', { recordIds: ids, importMode: source }, function (data) {
+                if (data) {
+                    successToast(`${ids.length} Odometer Record(s) Created`);
+                    var vehicleId = GetVehicleId().vehicleId;
+                    refreshDataCallBack(vehicleId);
+                } else {
+                    errorToast(genericErrorMessage());
+                }
+            });
+        } else {
+            $("#workAroundInput").hide();
+        }
+    });
+}
 var selectedRow = [];
 var isDragging = false;
 $(window).on('mouseup', function (e) {
@@ -1009,11 +1143,11 @@ function stopEvent() {
     event.stopPropagation();
 }
 function rangeMouseUp(e) {
-    if ($(".table-context-menu").length > 0) {
-        $(".table-context-menu").fadeOut("fast");
-    }
     if (isRightClick(e)) {
         return;
+    }
+    if ($(".table-context-menu").length > 0) {
+        $(".table-context-menu").fadeOut("fast");
     }
     isDragging = false;
     document.documentElement.onselectstart = function () { return true; };
@@ -1199,8 +1333,11 @@ function replenishSupplies() {
                 currentCost = 0;
             }
             var currentQuantity = globalParseFloat($('#supplyRecordQuantity').val());
+            if (isNaN(currentQuantity)) {
+                currentQuantity = 0;
+            }
             var newQuantity = currentQuantity + replenishedQuantity;
-            if (replenishedCost.trim() == '') {
+            if (replenishedCost.trim() == '' && currentCost > 0 && currentQuantity > 0) {
 
                 var unitCost = currentCost / currentQuantity;
                 var newCost = newQuantity * unitCost;
@@ -1264,7 +1401,7 @@ function searchTableRows(tabName) {
         }
     });
 }
-function loadUserColumnPreferences(columns) {
+function loadUserColumnPreferences(columns, order) {
     if (columns.length == 0) {
         //user has no preference saved, reset to default
         return;
@@ -1281,12 +1418,35 @@ function loadUserColumnPreferences(columns) {
             $(`[data-column='${x}']`).show();
         }
     });
+    order.map((x, y) => {
+        //re-order items in menu
+        var itemToMove = $(`[data-column-toggle='${x}'].col-visible-toggle`).closest('.dropdown-item');
+        var itemCurrentlyInPosition = $('.dropdown-item[draggable="true"]')[y];
+        if (itemToMove != undefined && itemToMove.length > 0 && itemCurrentlyInPosition != undefined) {
+            itemToMove.insertBefore(itemCurrentlyInPosition);
+        }
+        //re-order table columns
+        $(`[data-column='${x}']`).css('order', y);
+    });
 }
 function saveUserColumnPreferences(importMode) {
     var visibleColumns = $('.col-visible-toggle:checked').map((index, elem) => $(elem).attr('data-column-toggle')).toArray();
+    var columnOrder = [];
+    var sortedOrderedColumns = $("ul.dropdown-menu > li[draggable='true']").toArray().sort((a, b) => {
+        var currentVal = $(a).css("order");
+        var nextVal = $(b).css("order");
+        return currentVal - nextVal;
+    });
+    sortedOrderedColumns.map(elem => {
+        var columnOrderName = $(elem).find('.col-visible-toggle').attr("data-column-toggle");
+        if (columnOrderName != null && columnOrderName != undefined) {
+            columnOrder.push(columnOrderName);
+        }
+    });
     var columnPreference = {
         tab: importMode,
-        visibleColumns: visibleColumns
+        visibleColumns: visibleColumns,
+        columnOrder: columnOrder
     };
     $.post('/Vehicle/SaveUserColumnPreferences', { columnPreference: columnPreference }, function (data) {
         if (!data) {
@@ -1343,7 +1503,7 @@ function handleModalPaste(e, recordType) {
 }
 function handleEnter(e) {
     if ((event.ctrlKey || event.metaKey) && event.which == 13) {
-        var saveButton = $(e).parent().find(".modal-footer .btn-primary");
+        var saveButton = $(e).parent().find(".modal-footer .btn-primary:not('.d-none')");
         if (saveButton.length > 0) {
             saveButton.first().trigger('click');
         }
@@ -1365,5 +1525,76 @@ function togglePasswordVisibility(elem) {
         passwordField.attr("type", "password");
         passwordButton.removeClass('bi-eye-slash');
         passwordButton.addClass('bi-eye');
+    }
+}
+var tableColumnDragToReorder = undefined;
+function handleTableColumnDragStart(e) {
+    tableColumnDragToReorder = $(e.target).closest('.dropdown-item');
+    //clear out order attribute.
+    $("ul.dropdown-menu > li[draggable='true']").map((index, elem) => {
+        $(elem).css('order', 0);
+    })
+}
+function handleTableColumnDragOver(e) {
+    if (tableColumnDragToReorder == undefined || tableColumnDragToReorder == "") {
+        return;
+    }
+    var potentialDropTarget = $(e.target).closest('.list-group-item').find('.col-visible-toggle').attr("data-column-toggle");
+    var draggedTarget = tableColumnDragToReorder.find('.col-visible-toggle').attr("data-column-toggle");
+    if (draggedTarget != potentialDropTarget) {
+        var targetObj = $(e.target).closest('.dropdown-item');
+        var draggedOrder = tableColumnDragToReorder.index();
+        var targetOrder = targetObj.index();
+        if (draggedOrder < targetOrder) {
+            tableColumnDragToReorder.insertAfter(targetObj);
+        } else {
+            tableColumnDragToReorder.insertBefore(targetObj);
+        }
+    }
+    else {
+        event.preventDefault();
+    }
+}
+function handleTableColumnDragEnd(tabName) {
+    $("ul.dropdown-menu > li[draggable='true']").map((index, elem) => {
+        $(elem).css('order', $(elem).index());
+        var columnName = $(elem).find('.col-visible-toggle').attr('data-column-toggle');
+        $(`[data-column='${columnName}']`).css('order', $(elem).index());
+    });
+    saveUserColumnPreferences(tabName);
+    tableColumnDragToReorder = undefined;
+    if (isDragging) {
+        isDragging = false;
+    }
+}
+
+function callBackOnEnter(event, callBack) {
+    if (event.keyCode == 13) {
+        callBack();
+    }
+}
+
+function populateLocationField(fieldName) {
+    let populateLocationFieldCallBack = (position) => {
+        $(`#${fieldName}`).val(`${position.coords.latitude},${position.coords.longitude}`)
+    };
+    let populateLocationFieldErrorCallBack = (errMsg) => {
+        if (errMsg && errMsg.code) {
+            switch (errMsg.code) {
+                case 1:
+                    errorToast(errMsg.message);
+                    break;
+                case 2:
+                    errorToast("Location Unavailable");
+                    break;
+            }
+        }
+    };
+    if (navigator.geolocation) {
+        try {
+            navigator.geolocation.getCurrentPosition(populateLocationFieldCallBack, populateLocationFieldErrorCallBack, { maximumAge: 1000, timeout: 4000, enableHighAccuracy: true });
+        } catch (err) {
+            errorToast('Location Services not Enabled');
+        }
     }
 }

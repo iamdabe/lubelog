@@ -48,7 +48,7 @@
             </div>
         </div>
         <div class="row swimlane">
-            <div class="col-3 d-flex flex-column swimlane mid" ondragover="dragOver(event)" ondrop="dropBox(event, 'Backlog')">
+            <div class="col-3 d-flex flex-column swimlane" ondragover="dragOver(event)" ondrop="dropBox(event, 'Backlog')">
                 <div class="row">
                     <div class="col-12 d-flex justify-content-center" style="height:5vh;">
                         <span class="display-7">@translator.Translate(userLanguage,"Planned")</span>
@@ -59,7 +59,7 @@
                     @await Html.PartialAsync("_PlanRecordItem", planRecord)
                 }
             </div>
-            <div class="col-3 d-flex flex-column swimlane mid" ondragover="dragOver(event)" ondrop="dropBox(event, 'InProgress')">
+            <div class="col-3 d-flex flex-column swimlane" ondragover="dragOver(event)" ondrop="dropBox(event, 'InProgress')">
                 <div class="row">
                     <div class="col-12 d-flex justify-content-center" style="height:5vh;">
                         <span class="display-7">@translator.Translate(userLanguage,"Doing")</span>
@@ -81,7 +81,7 @@
                     @await Html.PartialAsync("_PlanRecordItem", planRecord)
                 }
             </div>
-            <div class="col-3 d-flex flex-column swimlane end" ondragover="dragOver(event)" ondrop="dropBox(event, 'Done')">
+            <div class="col-3 d-flex flex-column swimlane" ondragover="dragOver(event)" ondrop="dropBox(event, 'Done')">
                 <div class="row">
                     <div class="col-12 d-flex justify-content-center" style="height:5vh;">
                         <span class="display-7">@translator.Translate(userLanguage,"Done")</span>
@@ -127,5 +127,8 @@
     <li><hr class="context-menu-move move-header dropdown-divider"></li>
     <li><a class="dropdown-item context-menu-move move-header context-menu-duplicate" href="#"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Duplicate")</span><i class="bi bi-copy"></i></div></a></li>
     <li><a class="dropdown-item context-menu-move move-header context-menu-duplicate-vehicle" href="#"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Duplicate To Vehicle")</span><i class="bi bi-copy"></i></div></a></li>
+    <li><hr class="context-menu-move move-header dropdown-divider"></li>
+    <li><a class="dropdown-item context-menu-move move-header context-menu-print-tab-sticker" href="#"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Print")</span><i class="bi bi-printer"></i></div></a></li>
+    <li><hr class="context-menu-move move-header dropdown-divider"></li>
     <li><a class="dropdown-item context-menu-move move-header text-danger context-menu-delete" href="#"><div class="d-flex justify-content-between"><span class="me-5">@translator.Translate(userLanguage, "Delete")</span><i class="bi bi-trash"></i></div></a></li>
 </ul>

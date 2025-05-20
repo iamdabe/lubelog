@@ -19,12 +19,16 @@ namespace CarCareTracker.Helper
         bool GetCustomWidgetsEnabled();
         string GetMOTD();
         string GetLogoUrl();
+        string GetSmallLogoUrl();
         string GetServerLanguage();
         bool GetServerDisabledRegistration();
         bool GetServerEnableShopSupplies();
         string GetServerPostgresConnection();
         string GetAllowedFileUploadExtensions();
-        public bool DeleteUserConfig(int userId);
+        string GetServerDomain();
+        bool DeleteUserConfig(int userId);
+        bool GetInvariantApi();
+        bool GetServerOpenRegistration();
     }
     public class ConfigHelper : IConfigHelper
     {
@@ -51,10 +55,23 @@ namespace CarCareTracker.Helper
         {
             return CheckBool(CheckString("LUBELOGGER_CUSTOM_WIDGETS"));
         }
+        public bool GetInvariantApi()
+        {
+            return CheckBool(CheckString("LUBELOGGER_INVARIANT_API"));
+        }
         public string GetMOTD()
         {
             var motd = CheckString("LUBELOGGER_MOTD");
             return motd;
+        }
+        public string GetServerDomain()
+        {
+            var domain = CheckString("LUBELOGGER_DOMAIN");
+            return domain;
+        }
+        public bool GetServerOpenRegistration()
+        {
+            return CheckBool(CheckString("LUBELOGGER_OPEN_REGISTRATION"));
         }
         public OpenIDConfig GetOpenIDConfig()
         {
@@ -74,6 +91,11 @@ namespace CarCareTracker.Helper
         public string GetLogoUrl()
         {
             var logoUrl = CheckString("LUBELOGGER_LOGO_URL", "/defaults/lubelogger_logo.png");
+            return logoUrl;
+        }
+        public string GetSmallLogoUrl()
+        {
+            var logoUrl = CheckString("LUBELOGGER_LOGO_SMALL_URL", "/defaults/lubelogger_logo_small.png");
             return logoUrl;
         }
         public string GetAllowedFileUploadExtensions()
@@ -224,9 +246,11 @@ namespace CarCareTracker.Helper
                 EnableAutoOdometerInsert = CheckBool(CheckString(nameof(UserConfig.EnableAutoOdometerInsert))),
                 PreferredGasMileageUnit = CheckString(nameof(UserConfig.PreferredGasMileageUnit)),
                 PreferredGasUnit = CheckString(nameof(UserConfig.PreferredGasUnit)),
+                UseUnitForFuelCost = CheckBool(CheckString(nameof(UserConfig.UseUnitForFuelCost))),
                 UserLanguage = CheckString(nameof(UserConfig.UserLanguage), "en_US"),
                 HideSoldVehicles = CheckBool(CheckString(nameof(UserConfig.HideSoldVehicles))),
                 EnableShopSupplies = CheckBool(CheckString(nameof(UserConfig.EnableShopSupplies))),
+                ShowCalendar = CheckBool(CheckString(nameof(UserConfig.ShowCalendar))),
                 EnableExtraFieldColumns = CheckBool(CheckString(nameof(UserConfig.EnableExtraFieldColumns))),
                 VisibleTabs = _config.GetSection(nameof(UserConfig.VisibleTabs)).Get<List<ImportMode>>() ?? new UserConfig().VisibleTabs,
                 TabOrder = _config.GetSection(nameof(UserConfig.TabOrder)).Get<List<ImportMode>>() ?? new UserConfig().TabOrder,
@@ -234,7 +258,8 @@ namespace CarCareTracker.Helper
                 ReminderUrgencyConfig = _config.GetSection(nameof(UserConfig.ReminderUrgencyConfig)).Get<ReminderUrgencyConfig>() ?? new ReminderUrgencyConfig(),
                 DefaultTab = (ImportMode)int.Parse(CheckString(nameof(UserConfig.DefaultTab), "8")),
                 DefaultReminderEmail = CheckString(nameof(UserConfig.DefaultReminderEmail)),
-                DisableRegistration = CheckBool(CheckString(nameof(UserConfig.DisableRegistration)))
+                DisableRegistration = CheckBool(CheckString(nameof(UserConfig.DisableRegistration))),
+                ShowVehicleThumbnail = CheckBool(CheckString(nameof(UserConfig.ShowVehicleThumbnail)))
             };
             int userId = 0;
             if (user != null)
