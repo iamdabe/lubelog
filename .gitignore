@@ -1,9 +1,8 @@
 .vs/
-.vscode
 bin/
 obj/
-config/userConfig.json
-Properties/launchSettings.json
 data/
 CarCareTracker.csproj.user
 Properties/launchSettings.json
+config/userConfig.json
+.vscode

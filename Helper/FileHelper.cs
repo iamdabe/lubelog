@@ -274,7 +274,7 @@ namespace CarCareTracker.Helper
             if (Directory.Exists(translationPath))
             {
                 var files = Directory.GetFiles(translationPath);
-                foreach (var file in files)
+                foreach(var file in files)
                 {
                     var newPath = Path.Combine(tempPath, "translations");
                     Directory.CreateDirectory(newPath);
