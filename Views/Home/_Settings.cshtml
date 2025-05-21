@@ -27,6 +27,11 @@
                     <input class="form-check-input" onChange="updateColorModeSettings(this)" type="checkbox" role="switch" id="useSystemColorMode" checked="@Model.UserConfig.UseSystemColorMode">
                     <label class="form-check-label" for="useSystemColorMode">@translator.Translate(userLanguage, "Adaptive Color Mode")</label>
                 </div>
+
+                <div class="form-check form-switch form-check-inline">
+                    <input class="form-check-input" onChange="updateSettings()" type="checkbox" role="switch" id="showVehicleThumbnail" checked="@Model.UserConfig.ShowVehicleThumbnail">
+                    <label class="form-check-label" for="showCalendar">@translator.Translate(userLanguage, "Show Vehicle Thumbnail in Header")</label>
+                </div>
             </div>
             <div class="col-12 col-md-6">
                 <div class="form-check form-switch ">
@@ -49,10 +54,14 @@
                     <input class="form-check-input" onChange="updateSettings()" type="checkbox" role="switch" id="enableShopSupplies" checked="@Model.UserConfig.EnableShopSupplies">
                     <label class="form-check-label" for="enableShopSupplies">@translator.Translate(userLanguage, "Enable Shop Supplies")</label>
                 </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" onChange="updateSettings()" type="checkbox" role="switch" id="enableCsvImports" checked="@Model.UserConfig.EnableCsvImports">
+                    <label class="form-check-label" for="enableCsvImports">@translator.Translate(userLanguage, "Enable CSV Imports")</label>
+                </div>
             </div>
             <div class="col-12 col-md-6">
                 <div class="form-check form-switch ">
-                    <input class="form-check-input" onChange="updateSettings()" type="checkbox" role="switch" id="showCalendar" checked="@Model.UserConfig.EnableShopSupplies">
+                    <input class="form-check-input" onChange="updateSettings()" type="checkbox" role="switch" id="showCalendar" checked="@Model.UserConfig.ShowCalendar">
                     <label class="form-check-label" for="showCalendar">@translator.Translate(userLanguage, "Show Calendar")</label>
                 </div>
             </div>
@@ -85,16 +94,10 @@
 
         <div class="row mb-3">
             <div class="col-12">
-                <i class="bi bi-sliders"></i><span class="ms-2 lead">@translator.Translate(userLanguage, "Data Import, Formatting & Automation")</span>
+                <i class="bi bi-sliders"></i><span class="ms-2 lead">@translator.Translate(userLanguage, "Data & Formatting")</span>
             </div>
 
             <div class="col-12">
-
-
-                <div class="form-check form-switch">
-                    <input class="form-check-input" onChange="updateSettings()" type="checkbox" role="switch" id="enableCsvImports" checked="@Model.UserConfig.EnableCsvImports">
-                    <label class="form-check-label" for="enableCsvImports">@translator.Translate(userLanguage, "Enable CSV Imports")</label>
-                </div>
                 <div class="form-check form-switch">
                     <input class="form-check-input" onChange="updateSettings()" type="checkbox" role="switch" id="useDescending" checked="@Model.UserConfig.UseDescending">
                     <label class="form-check-label" for="useDescending">@translator.Translate(userLanguage, "Sort lists in Descending Order(Newest to Oldest)")</label>

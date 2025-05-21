@@ -2,7 +2,6 @@
     var vehicleId = GetVehicleId().vehicleId;
     //bind tabs
     $('button[data-bs-toggle="tab"]').on('show.bs.tab', function (e) {
-        console.log(e.target.id);
         switch (e.target.id) {
             case "servicerecord-tab":
                 getVehicleServiceRecords(vehicleId);
@@ -152,7 +151,6 @@ function getVehiclePlanRecords(vehicleId) {
     });
 }
 function getVehicleOdometerRecords(vehicleId) {
-    console.log(`/Vehicle/GetOdometerRecordsByVehicleId ? vehicleId = ${ vehicleId }`);
     $.get(`/Vehicle/GetOdometerRecordsByVehicleId?vehicleId=${vehicleId}`, function (data) {
         if (data) {
             $("#odometer-tab-pane").html(data);

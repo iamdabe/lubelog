@@ -245,6 +245,7 @@ namespace CarCareTracker.Helper
             var imagePath = Path.Combine(_webEnv.ContentRootPath, "data", "images");
             var documentPath = Path.Combine(_webEnv.ContentRootPath, "data", "documents");
             var translationPath = Path.Combine(_webEnv.ContentRootPath, "data", "translations");
+            var galleryPath = Path.Combine(_webEnv.ContentRootPath, "data", "gallery");
             var dataPath = StaticHelper.DbName;
             var widgetPath = StaticHelper.AdditionalWidgetsPath;
             var configPath = StaticHelper.UserConfigPath;
@@ -273,9 +274,19 @@ namespace CarCareTracker.Helper
             if (Directory.Exists(translationPath))
             {
                 var files = Directory.GetFiles(translationPath);
-                foreach(var file in files)
+                foreach (var file in files)
                 {
                     var newPath = Path.Combine(tempPath, "translations");
+                    Directory.CreateDirectory(newPath);
+                    File.Copy(file, $"{newPath}/{Path.GetFileName(file)}");
+                }
+            }
+            if (Directory.Exists(galleryPath))
+            {
+                var files = Directory.GetFiles(galleryPath);
+                foreach (var file in files)
+                {
+                    var newPath = Path.Combine(tempPath, "gallery");
                     Directory.CreateDirectory(newPath);
                     File.Copy(file, $"{newPath}/{Path.GetFileName(file)}");
                 }

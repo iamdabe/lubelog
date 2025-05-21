@@ -165,6 +165,23 @@ app.UseStaticFiles(new StaticFileOptions
         }
     }
 });
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+           Path.Combine(builder.Environment.ContentRootPath, "data", "gallery")),
+    RequestPath = "/gallery",
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.Context.Request.Path.StartsWithSegments("/gallery"))
+        {
+            ctx.Context.Response.Headers.Append("Cache-Control", "no-store");
+            if (!ctx.Context.User.Identity.IsAuthenticated)
+            {
+                ctx.Context.Response.Redirect("/Login");
+            }
+        }
+    }
+});
 
 app.UseRouting();
 

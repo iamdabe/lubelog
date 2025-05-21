@@ -343,6 +343,11 @@ namespace CarCareTracker.Helper
                 Directory.CreateDirectory("data/documents");
                 Console.WriteLine("Created documents directory");
             }
+            if (!Directory.Exists("data/gallery"))
+            {
+                Directory.CreateDirectory("data/gallery");
+                Console.WriteLine("Created gallery directory");
+            }
             if (!Directory.Exists("data/translations"))
             {
                 Directory.CreateDirectory("data/translations");

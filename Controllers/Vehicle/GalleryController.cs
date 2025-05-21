@@ -53,7 +53,7 @@ namespace CarCareTracker.Controllers
 
             if (result)
             {
-                StaticHelper.NotifyAsync(_config.GetWebHookUrl(), galleryRecord.VehicleId, User.Identity.Name, $"{(galleryRecord.Id == default ? "Created" : "Edited")} Gallery Record");
+                StaticHelper.NotifyAsync(_config.GetWebHookUrl(), WebHookPayload.Generic($"{(galleryRecord.Id == default ? "Created" : "Edited")} Gallery Record", "galleryRecord.update", User.Identity.Name, galleryRecord.VehicleId.ToString()));
             }
             return Json(result);
         }
@@ -87,16 +87,18 @@ namespace CarCareTracker.Controllers
                 return false;
             }
             var result = _galleryRecordDataAccess.DeleteGalleryRecordById(existingRecord.Id);
+            if (result)
+            {
+                StaticHelper.NotifyAsync(_config.GetWebHookUrl(), WebHookPayload.Generic($"Deleted Gallery Record - Id: {galleryRecordId}", "galleryRecord.delete", User.Identity.Name, existingRecord.VehicleId.ToString()));
+
+            }
             return result;
         }
         [HttpPost]
         public IActionResult DeleteGalleryRecordById(int galleryRecordId)
         {
             var result = DeleteGalleryRecordWithChecks(galleryRecordId);
-            if (result)
-            {
-                StaticHelper.NotifyAsync(_config.GetWebHookUrl(), 0, User.Identity.Name, $"Deleted Gallery Record - Id: {galleryRecordId}");
-            }
+  
             return Json(result);
         }
     }

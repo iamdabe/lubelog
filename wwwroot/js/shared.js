@@ -592,19 +592,6 @@ function deleteFileFromUploadedFiles(fileLocation, event) {
         }
     }
 }
-function deleteFileFromImageFiles(fileLocation, event) {
-    event.parentElement.parentElement.parentElement.remove();
-    uploadedFiles = uploadedFiles.filter(x => x.location != fileLocation);
-    if (fileLocation.startsWith("/temp/")) {
-        if ($("#imagesPendingUploadList > li").length == 0) {
-            $("#imagesPendingUploadLabel").text("");
-        }
-    } else if (fileLocation.startsWith("/documents/")) {
-        if ($("#uploadedImagesList > li").length == 0) {
-            $("#uploadedImagesLabel").text("");
-        }
-    }
-}
 function editFileName(fileLocation, event) {
     Swal.fire({
         title: 'Rename File',
