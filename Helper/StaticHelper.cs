@@ -152,15 +152,6 @@ namespace CarCareTracker.Helper
             }
             return "";
         }
-        public static string ThemeSelected(UserConfig userConfig, string theme)
-        {
-            var selectedTheme = userConfig.ThemeVariant;
-            if (theme == selectedTheme)
-            {
-                return "selected";
-            }
-            return "";
-        }
         public static List<CostForVehicleByMonth> GetBaseLineCosts()
         {
             return new List<CostForVehicleByMonth>()

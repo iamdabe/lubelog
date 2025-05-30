@@ -259,8 +259,7 @@ namespace CarCareTracker.Helper
                 DefaultTab = (ImportMode)int.Parse(CheckString(nameof(UserConfig.DefaultTab), "8")),
                 DefaultReminderEmail = CheckString(nameof(UserConfig.DefaultReminderEmail)),
                 DisableRegistration = CheckBool(CheckString(nameof(UserConfig.DisableRegistration))),
-                ShowVehicleThumbnail = CheckBool(CheckString(nameof(UserConfig.ShowVehicleThumbnail))),
-                ThemeVariant = CheckString(nameof(UserConfig.ThemeVariant))
+                ShowVehicleThumbnail = CheckBool(CheckString(nameof(UserConfig.ShowVehicleThumbnail)))
             };
             int userId = 0;
             if (user != null)
